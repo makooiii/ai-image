@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,7 +24,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { aspectRatioOptions, defaultValues, transformationTypes } from "@/constants";
 import { CustomField } from "./CustomField";
-import { AspectRatioKey } from "@/lib/utils";
+import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils";
+import { updateCredits } from "@/lib/actions/user.actions";
 
 export const formSchema = z.object({
     title: z.string(),
@@ -48,6 +49,7 @@ const TransformationForm = ({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isTransforming, setisTransforming] = useState(false);
     const [transformationConfig, setTransformationConfig] = useState(config);
+    const [isPending, startTransition] = useTransition();
     const intialValues =
         data && action === "Update"
             ? {
@@ -70,16 +72,51 @@ const TransformationForm = ({
         console.log(values);
     }
 
-    const onSelectFieldHandler = (value: string, onChangeField: (value: string) => void) => {};
+    const onSelectFieldHandler = (value: string, onChangeField: (value: string) => void) => {
+        const imageSize = aspectRatioOptions[value as AspectRatioKey];
+
+        setImage((prevState: any) => ({
+            ...prevState,
+            aspectRatio: imageSize.aspectRatio,
+            width: imageSize.width,
+            height: imageSize.height
+        }));
+
+        setNewTransformation(transformationType.config);
+
+        return onChangeField(value);
+    };
 
     const onInputChangeHandler = (
         fieldName: string,
         value: string,
         type: string,
         onChangeField: (value: string) => void
-    ) => {};
+    ) => {
+        debounce(() => {
+            setNewTransformation((prevState: any) => ({
+                ...prevState,
+                [type]: {
+                    ...prevState?.[type],
+                    [fieldName === "promt" ? "prompt" : "to"]: value
+                }
+            }));
 
-    const onTransformHandler = () => {};
+            return onChangeField(value);
+        }, 1000);
+    };
+    // TODO: Return to updateCredits
+    const onTransformHandler = () => {
+        setisTransforming(true);
+
+        setTransformationConfig(deepMergeObjects(newTransformation, transformationConfig));
+
+        setNewTransformation(null);
+
+        startTransition(async () => {
+            // await updateCredits(userId, creditFee)
+        });
+    };
 
     return (
         <Form {...form}>
@@ -98,7 +135,9 @@ const TransformationForm = ({
                         formLabel="Aspect Ratio"
                         className="w-full"
                         render={({ field }) => (
-                            <Select>
+                            <Select
+                                onValueChange={value => onSelectFieldHandler(value, field.onChange)}
+                            >
                                 <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Theme" />
                                 </SelectTrigger>
@@ -121,7 +160,7 @@ const TransformationForm = ({
                             name="prompt"
                             formLabel={type === "remove" ? "Object to remove" : "Object to recolor"}
                             className="w-full"
-                            render={field => (
+                            render={({ field }) => (
                                 <Input
                                     value={field.value}
                                     className="input-field"
