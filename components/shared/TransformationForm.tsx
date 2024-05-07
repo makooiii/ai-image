@@ -26,6 +26,7 @@ import { aspectRatioOptions, defaultValues, transformationTypes } from "@/consta
 import { CustomField } from "./CustomField";
 import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils";
 import { updateCredits } from "@/lib/actions/user.actions";
+import MediaUploader from "./MediaUploader";
 
 export const formSchema = z.object({
     title: z.string(),
@@ -44,7 +45,7 @@ const TransformationForm = ({
     config = null
 }: TransformationFormProps) => {
     const transformationType = transformationTypes[type];
-    const [Image, setImage] = useState(data);
+    const [image, setImage] = useState(data);
     const [newTransformation, setNewTransformation] = useState<Transformations | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isTransforming, setisTransforming] = useState(false);
@@ -139,7 +140,7 @@ const TransformationForm = ({
                                 onValueChange={value => onSelectFieldHandler(value, field.onChange)}
                             >
                                 <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Theme" />
+                                    <SelectValue placeholder="Select Size" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {Object.keys(aspectRatioOptions).map(key => (
@@ -181,7 +182,7 @@ const TransformationForm = ({
                                 name="color"
                                 formLabel="Replacement Color"
                                 className="w-full"
-                                render={field => (
+                                render={({ field }) => (
                                     <Input
                                         value={field.value}
                                         className="input-field"
@@ -199,6 +200,24 @@ const TransformationForm = ({
                         )}
                     </div>
                 )}
+
+                <div className="media-uploader-field">
+                    <CustomField
+                        control={form.control}
+                        name="publicId"
+                        className="flex size-full flex-col"
+                        render={({ field }) => (
+                            <MediaUploader
+                                onValueChange={field.onChange}
+                                setImage={setImage}
+                                publicId={field.value}
+                                image={image}
+                                type={type}
+                            />
+                        )}
+                    />
+                </div>
+
                 <div className="flex flex-col gap-4">
                     <Button
                         className="submit-button capitalize"
