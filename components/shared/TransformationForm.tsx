@@ -27,6 +27,7 @@ import { CustomField } from "./CustomField";
 import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils";
 import { updateCredits } from "@/lib/actions/user.actions";
 import MediaUploader from "./MediaUploader";
+import TransformedImage from "./TransformedImage";
 
 export const formSchema = z.object({
     title: z.string(),
@@ -48,7 +49,7 @@ const TransformationForm = ({
     const [image, setImage] = useState(data);
     const [newTransformation, setNewTransformation] = useState<Transformations | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isTransforming, setisTransforming] = useState(false);
+    const [isTransforming, setIsTransforming] = useState(false);
     const [transformationConfig, setTransformationConfig] = useState(config);
     const [isPending, startTransition] = useTransition();
     const intialValues =
@@ -106,16 +107,16 @@ const TransformationForm = ({
             return onChangeField(value);
         }, 1000);
     };
-    // TODO: Return to updateCredits
+    // TODO: Update creditFee to something else
     const onTransformHandler = () => {
-        setisTransforming(true);
+        setIsTransforming(true);
 
         setTransformationConfig(deepMergeObjects(newTransformation, transformationConfig));
 
         setNewTransformation(null);
 
         startTransition(async () => {
-            // await updateCredits(userId, creditFee)
+            await updateCredits(userId, -1);
         });
     };
 
@@ -215,6 +216,15 @@ const TransformationForm = ({
                                 type={type}
                             />
                         )}
+                    />
+
+                    <TransformedImage
+                        image={image}
+                        type={type}
+                        title={form.getValues().title}
+                        isTransforming={isTransforming}
+                        setIsTransforming={setIsTransforming}
+                        transformationConfig={transformationConfig}
                     />
                 </div>
 
