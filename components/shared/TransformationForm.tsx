@@ -1,5 +1,5 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -22,7 +22,7 @@ import {
     FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { aspectRatioOptions, defaultValues, transformationTypes } from "@/constants";
+import { aspectRatioOptions, creditFee, defaultValues, transformationTypes } from "@/constants";
 import { CustomField } from "./CustomField";
 import { AspectRatioKey, debounce, deepMergeObjects } from "@/lib/utils";
 import { updateCredits } from "@/lib/actions/user.actions";
@@ -31,6 +31,7 @@ import TransformedImage from "./TransformedImage";
 import { getCldImageUrl } from "next-cloudinary";
 import { addImage, updateImage } from "@/lib/actions/image.actions";
 import { useRouter } from "next/navigation";
+import { InsufficientCreditsModal } from "./InsuffiecientCreditsModal";
 
 export const formSchema = z.object({
     title: z.string(),
@@ -92,7 +93,7 @@ const TransformationForm = ({
                 width: image?.width,
                 height: image?.height,
                 config: transformationConfig,
-                secureURL: image?.secureUrl,
+                secureURL: image?.secureURL,
                 transformationURL: transformationUrl,
                 aspectRatio: values.aspectRatio,
                 prompt: values.prompt,
@@ -172,7 +173,7 @@ const TransformationForm = ({
             return onChangeField(value);
         }, 1000);
     };
-    // TODO: Update creditFee to something else
+
     const onTransformHandler = () => {
         setIsTransforming(true);
 
@@ -181,13 +182,20 @@ const TransformationForm = ({
         setNewTransformation(null);
 
         startTransition(async () => {
-            await updateCredits(userId, -1);
+            await updateCredits(userId, creditFee);
         });
     };
+
+    useEffect(() => {
+        if (image && (type === "restore" || type === "removeBackground")) {
+            setNewTransformation(transformationType.config);
+        }
+    }, [image, transformationType.config, type]);
 
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                {creditBalance < Math.abs(creditFee) && <InsufficientCreditsModal />}
                 <CustomField
                     control={form.control}
                     name="title"
